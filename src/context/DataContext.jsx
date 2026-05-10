@@ -52,7 +52,7 @@ export const DataProvider = ({ children, session }) => {
 
   const loadTodos = async (force = false) => {
     if (!force && todos !== null) return todos;
-    const { data } = await supabase.from('todos').select('*').order('created_at', { ascending: true });
+    const { data } = await supabase.from('todos').select('*').order('id', { ascending: true });
     setTodos(data || []);
     return data || [];
   };
