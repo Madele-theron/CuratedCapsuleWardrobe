@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { Plus, Trash2, CheckCircle2, Circle, PencilLine, X } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, Circle, PencilLine, X, Loader2 } from 'lucide-react';
 
 const DEFAULT_MISSION = [
   {
@@ -30,21 +30,25 @@ export default function ClosetPurge() {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ title: '', description: '' });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchAndSeedData();
   }, []);
 
   const fetchAndSeedData = async () => {
-    let { data } = await supabase.from('todos').select('*').order('created_at', { ascending: true });
-    
-    if (!data || data.length === 0) {
-      // Handle sequential creation orders by spacing timestamps out slightly
-      await supabase.from('todos').insert(DEFAULT_MISSION);
-      const { data: refreshed } = await supabase.from('todos').select('*').order('created_at', { ascending: true });
-      data = refreshed;
+    try {
+      let { data } = await supabase.from('todos').select('*').order('created_at', { ascending: true });
+      
+      if (!data || data.length === 0) {
+        await supabase.from('todos').insert(DEFAULT_MISSION);
+        const { data: refreshed } = await supabase.from('todos').select('*').order('created_at', { ascending: true });
+        data = refreshed;
+      }
+      setTodos(data || []);
+    } finally {
+      setIsLoading(false);
     }
-    setTodos(data || []);
   };
 
   const toggleStatus = async (id, currentStatus) => {
@@ -92,6 +96,15 @@ export default function ClosetPurge() {
 
   const completedCount = todos.filter(t => t.is_done).length;
   const progressPercent = todos.length > 0 ? Math.round((completedCount / todos.length) * 100) : 0;
+
+  if (isLoading) {
+    return (
+      <div className="loading-container">
+        <Loader2 size={32} className="animate-spin" style={{ marginBottom: '16px', color: 'var(--accent)' }} />
+        <p>Loading checklist...</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>

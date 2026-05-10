@@ -1,23 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { readFileAsDataURL } from '../hooks/useFileReader';
-import { Plus, Trash2, Image as ImageIcon, Droplet, UploadCloud } from 'lucide-react';
+import { Plus, Trash2, Image as ImageIcon, Droplet, UploadCloud, Loader2 } from 'lucide-react';
 
 export default function Moodboard() {
   const [swatches, setSwatches] = useState([]);
   const [inspoPhotos, setInspoPhotos] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newSwatch, setNewSwatch] = useState({ name: '', type: 'color', data: '#ffffff' });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
-    const { data: swt } = await supabase.from('swatches').select('*').order('created_at', { ascending: true });
-    const { data: inspo } = await supabase.from('inspo_photos').select('*').order('created_at', { ascending: false });
-    setSwatches(swt || []);
-    setInspoPhotos(inspo || []);
+    try {
+      const { data: swt } = await supabase.from('swatches').select('*').order('created_at', { ascending: true });
+      const { data: inspo } = await supabase.from('inspo_photos').select('*').order('created_at', { ascending: false });
+      setSwatches(swt || []);
+      setInspoPhotos(inspo || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSwatchFileUpload = async (e) => {
@@ -30,25 +38,34 @@ export default function Moodboard() {
 
   const handleInspoUpload = async (e) => {
     const files = Array.from(e.target.files);
-    for (let file of files) {
-      const base64 = await readFileAsDataURL(file);
-      await supabase.from('inspo_photos').insert([{ data: base64 }]);
+    if(files.length === 0) return;
+    setIsUploading(true);
+    try {
+      for (let file of files) {
+        const base64 = await readFileAsDataURL(file);
+        await supabase.from('inspo_photos').insert([{ data: base64 }]);
+      }
+      await fetchData();
+    } finally {
+      setIsUploading(false);
     }
-    fetchData();
   };
 
   const saveSwatch = async () => {
     if (!newSwatch.name) return alert('Please give your swatch a name.');
-    
-    await supabase.from('swatches').insert([{
-      type: newSwatch.type,
-      name: newSwatch.name,
-      data: newSwatch.data
-    }]);
-    
-    setShowAddModal(false);
-    setNewSwatch({ name: '', type: 'color', data: '#ffffff' });
-    fetchData();
+    setIsUploading(true);
+    try {
+      await supabase.from('swatches').insert([{
+        type: newSwatch.type,
+        name: newSwatch.name,
+        data: newSwatch.data
+      }]);
+      setShowAddModal(false);
+      setNewSwatch({ name: '', type: 'color', data: '#ffffff' });
+      await fetchData();
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const deleteSwatch = async (id, e) => {
@@ -67,17 +84,31 @@ export default function Moodboard() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="loading-container">
+        <Loader2 size={32} className="animate-spin" style={{ marginBottom: '16px', color: 'var(--accent)' }} />
+        <p>Curating your palette...</p>
+      </div>
+    );
+  }
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <header className="header-bar">
         <h1 style={{ fontSize: '24px' }}>The Moodboard</h1>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <input type="file" multiple accept="image/*" id="bulkInspoUpload" style={{ display: 'none' }} onChange={handleInspoUpload} />
-          <label htmlFor="bulkInspoUpload" className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {isUploading && (
+            <div style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-dark)' }}>
+              <Loader2 size={14} className="animate-spin" /> Uploading to cloud...
+            </div>
+          )}
+          <input type="file" multiple accept="image/*" id="bulkInspoUpload" style={{ display: 'none' }} onChange={handleInspoUpload} disabled={isUploading} />
+          <label htmlFor="bulkInspoUpload" className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: isUploading ? 'not-allowed' : 'pointer', opacity: isUploading ? 0.5 : 1 }}>
             <UploadCloud size={16} />
             <span>Upload Inspo Screenshots</span>
           </label>
-          <button className="btn-primary" onClick={() => setShowAddModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button className="btn-primary" onClick={() => setShowAddModal(true)} disabled={isUploading} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Plus size={18} />
             <span>New Swatch</span>
           </button>
@@ -138,11 +169,11 @@ export default function Moodboard() {
         {inspoPhotos.length === 0 ? (
           <label htmlFor="bulkInspoUpload" style={{ 
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
-            height: '240px', border: '2px dashed var(--border)', borderRadius: 'var(--radius-md)', cursor: 'pointer',
-            color: 'var(--text-muted)'
+            height: '240px', border: '2px dashed var(--border)', borderRadius: 'var(--radius-md)', cursor: isUploading ? 'wait' : 'pointer',
+            color: 'var(--text-muted)', opacity: isUploading ? 0.5 : 1
           }}>
-            <ImageIcon size={48} style={{ opacity: 0.2, marginBottom: '16px' }} />
-            <p style={{ fontStyle: 'italic' }}>No inspiration items yet.</p>
+            {isUploading ? <Loader2 size={32} className="animate-spin" /> : <ImageIcon size={48} style={{ opacity: 0.2, marginBottom: '16px' }} />}
+            <p style={{ fontStyle: 'italic', marginTop: 8 }}>{isUploading ? 'Uploading assets...' : 'No inspiration items yet.'}</p>
           </label>
         ) : (
           <div className="inspo-grid">
@@ -168,7 +199,7 @@ export default function Moodboard() {
       </div>
 
       {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
+        <div className="modal-overlay" onClick={() => !isUploading && setShowAddModal(false)}>
           <div className="modal-sheet" onClick={e => e.stopPropagation()}>
             <h2 style={{ marginBottom: '24px' }}>New Palette Swatch</h2>
             
@@ -176,6 +207,7 @@ export default function Moodboard() {
               <label>Type</label>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button 
+                  disabled={isUploading}
                   className={`btn-outline`}
                   style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: newSwatch.type === 'color' ? '2px solid var(--accent)' : '1px solid var(--border)', background: newSwatch.type === 'color' ? 'var(--accent-light)' : '' }}
                   onClick={() => setNewSwatch({ ...newSwatch, type: 'color', data: '#d0b393' })}
@@ -183,6 +215,7 @@ export default function Moodboard() {
                   <Droplet size={16} /> Solid Color
                 </button>
                 <button 
+                  disabled={isUploading}
                   className={`btn-outline`}
                   style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: newSwatch.type === 'texture' ? '2px solid var(--accent)' : '1px solid var(--border)', background: newSwatch.type === 'texture' ? 'var(--accent-light)' : '' }}
                   onClick={() => setNewSwatch({ ...newSwatch, type: 'texture', data: '' })}
@@ -195,6 +228,7 @@ export default function Moodboard() {
             <div className="form-group">
               <label>Swatch Name</label>
               <input 
+                disabled={isUploading}
                 type="text" placeholder="e.g. Camel Cashmere" 
                 style={{ width: '100%' }} value={newSwatch.name}
                 onChange={e => setNewSwatch({ ...newSwatch, name: e.target.value })}
@@ -206,11 +240,13 @@ export default function Moodboard() {
               {newSwatch.type === 'color' ? (
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                   <input 
+                    disabled={isUploading}
                     type="color" value={newSwatch.data}
                     onChange={e => setNewSwatch({ ...newSwatch, data: e.target.value })}
                     style={{ width: '60px', height: '40px', cursor: 'pointer' }}
                   />
                   <input 
+                    disabled={isUploading}
                     type="text" value={newSwatch.data}
                     onChange={e => setNewSwatch({ ...newSwatch, data: e.target.value })}
                     style={{ flexGrow: 1 }}
@@ -218,8 +254,8 @@ export default function Moodboard() {
                 </div>
               ) : (
                 <div>
-                  <input type="file" accept="image/*" onChange={handleSwatchFileUpload} style={{ display: 'none' }} id="fileInputSwatch" />
-                  <label htmlFor="fileInputSwatch" style={{ display: 'block', border: '2px dashed var(--border)', padding: '30px', textAlign: 'center', cursor: 'pointer' }}>
+                  <input type="file" accept="image/*" onChange={handleSwatchFileUpload} style={{ display: 'none' }} id="fileInputSwatch" disabled={isUploading} />
+                  <label htmlFor="fileInputSwatch" style={{ display: 'block', border: '2px dashed var(--border)', padding: '30px', textAlign: 'center', cursor: isUploading ? 'not-allowed' : 'pointer' }}>
                     {newSwatch.data ? (
                       <img src={newSwatch.data} style={{ maxWidth: '100%', maxHeight: '120px', borderRadius: '4px' }} />
                     ) : (
@@ -231,8 +267,11 @@ export default function Moodboard() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' }}>
-              <button className="btn-outline" onClick={() => setShowAddModal(false)}>Cancel</button>
-              <button className="btn-primary" onClick={saveSwatch}>Add to Palette</button>
+              <button className="btn-outline" disabled={isUploading} onClick={() => setShowAddModal(false)}>Cancel</button>
+              <button className="btn-primary" disabled={isUploading} onClick={saveSwatch} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {isUploading && <Loader2 size={16} className="animate-spin" />}
+                {isUploading ? 'Saving...' : 'Add to Palette'}
+              </button>
             </div>
           </div>
         </div>

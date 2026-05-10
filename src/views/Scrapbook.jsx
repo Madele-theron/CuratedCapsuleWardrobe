@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Rnd } from 'react-rnd';
 import { supabase } from '../lib/supabaseClient';
 import { readFileAsDataURL } from '../hooks/useFileReader';
-import { Plus, Trash2, Image as ImageIcon, Layers, ShoppingBag, ChevronLeft, Calendar } from 'lucide-react';
+import { Plus, Trash2, Image as ImageIcon, Layers, ShoppingBag, ChevronLeft, Calendar, Loader2 } from 'lucide-react';
 
 export default function Scrapbook() {
   const [boards, setBoards] = useState([]);
@@ -15,6 +15,8 @@ export default function Scrapbook() {
   const [inspoPhotos, setInspoPhotos] = useState([]);
   const [showAssetDrawer, setShowAssetDrawer] = useState(false);
   const [activeTab, setActiveTab] = useState('items');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -29,8 +31,12 @@ export default function Scrapbook() {
   }, [activeBoardId]);
 
   const loadBoards = async () => {
-    const { data } = await supabase.from('scrapbooks').select('*').order('created_at', { ascending: false });
-    setBoards(data || []);
+    try {
+      const { data } = await supabase.from('scrapbooks').select('*').order('created_at', { ascending: false });
+      setBoards(data || []);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleOpenModal = () => {
@@ -51,20 +57,24 @@ export default function Scrapbook() {
   const deleteBoard = async (id, e) => {
     e.stopPropagation();
     if (window.confirm("Delete this board and its assets forever?")) {
-      // Cascade deletion occurs by DB policy, but let's explicit call
       await supabase.from('scrapbooks').delete().eq('id', id);
       loadBoards();
     }
   };
 
   const openBoard = (board) => {
+    setIsLoading(true);
     setActiveBoardId(board.id);
     setActiveBoardName(board.name);
   };
 
   const loadWorkspace = async (boardId) => {
-    const { data } = await supabase.from('scrapbook_elements').select('*').eq('scrapbook_id', boardId);
-    setElements(data || []);
+    try {
+      const { data } = await supabase.from('scrapbook_elements').select('*').eq('scrapbook_id', boardId);
+      setElements(data || []);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const loadAssets = async () => {
@@ -75,20 +85,22 @@ export default function Scrapbook() {
   };
 
   const addElementToCanvas = async (dataUrl) => {
-    const newEl = {
-      scrapbook_id: activeBoardId,
-      type: 'image',
-      content: dataUrl,
-      x: 100 + (Math.random() * 50),
-      y: 100 + (Math.random() * 50),
-      width: 200,
-      height: 200,
-      z_index: elements.length + 1
-    };
-    
-    const { data } = await supabase.from('scrapbook_elements').insert([newEl]).select();
-    if (data) {
-      setElements([...elements, data[0]]);
+    setIsUploading(true);
+    try {
+      const newEl = {
+        scrapbook_id: activeBoardId,
+        type: 'image',
+        content: dataUrl,
+        x: 100 + (Math.random() * 50),
+        y: 100 + (Math.random() * 50),
+        width: 200,
+        height: 200,
+        z_index: elements.length + 1
+      };
+      const { data } = await supabase.from('scrapbook_elements').insert([newEl]).select();
+      if (data) setElements([...elements, data[0]]);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -101,17 +113,13 @@ export default function Scrapbook() {
   };
 
   const updateElement = async (id, updates) => {
-    // Remap updates if needed (JS camel to Snake already solved in definition below or manual)
     setElements(elements.map(el => el.id === id ? { ...el, ...updates } : el));
-    
-    // Translate update keys to match DB schema
     const mapped = {};
     if (updates.x !== undefined) mapped.x = updates.x;
     if (updates.y !== undefined) mapped.y = updates.y;
     if (updates.width !== undefined) mapped.width = updates.width;
     if (updates.height !== undefined) mapped.height = updates.height;
     if (updates.zIndex !== undefined) mapped.z_index = updates.zIndex;
-
     await supabase.from('scrapbook_elements').update(mapped).eq('id', id);
   };
 
@@ -124,6 +132,15 @@ export default function Scrapbook() {
     const maxZ = elements.reduce((max, el) => Math.max(max, el.z_index || 0), 0);
     await updateElement(id, { zIndex: maxZ + 1 });
   };
+
+  if (isLoading) {
+    return (
+      <div className="loading-container">
+        <Loader2 size={32} className="animate-spin" style={{ marginBottom: '16px', color: 'var(--accent)' }} />
+        <p>Accessing your outfits studio...</p>
+      </div>
+    );
+  }
 
   if (!activeBoardId) {
     return (
@@ -180,11 +197,19 @@ export default function Scrapbook() {
             <ChevronLeft size={18} /> Back
           </button>
           <h1>{activeBoardName}</h1>
+          {isUploading && (
+            <span style={{ fontSize: '11px', color: 'var(--accent-dark)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Loader2 size={12} className="animate-spin" /> Uploading...
+            </span>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button className="btn-outline" onClick={() => setShowAssetDrawer(!showAssetDrawer)}>Assets & Inspo</button>
-          <input type="file" id="canvupl" style={{ display: 'none' }} onChange={handleImageUpload} />
-          <label htmlFor="canvupl" className="btn-primary" style={{ cursor: 'pointer' }}>Upload</label>
+          <input type="file" id="canvupl" style={{ display: 'none' }} onChange={handleImageUpload} disabled={isUploading} />
+          <label htmlFor="canvupl" className="btn-primary" style={{ cursor: isUploading ? 'wait' : 'pointer', display: 'flex', gap: 8, alignItems: 'center', opacity: isUploading ? 0.7 : 1 }}>
+            {isUploading ? <Loader2 size={14} className="animate-spin" /> : null}
+            <span>Upload</span>
+          </label>
         </div>
       </header>
       <div ref={canvasRef} className="canvas-bg" style={{ flexGrow: 1, position: 'relative', overflow: 'hidden', margin: '16px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' }}>
@@ -200,7 +225,7 @@ export default function Scrapbook() {
             style={{ zIndex: el.z_index }}
           >
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-              <img src={el.content} style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'auto' }} />
+              <img src={el.content} style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'auto' }} alt="" />
               <div onClick={() => deleteElement(el.id)} style={{ position: 'absolute', top: 4, right: 4, background: 'white', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                 <Trash2 size={12} color="red" />
               </div>
@@ -212,20 +237,23 @@ export default function Scrapbook() {
         ))}
       </div>
       {showAssetDrawer && (
-        <div style={{ position: 'absolute', right: 0, top: 70, bottom: 0, width: '300px', background: 'white', zIndex: 50, padding: 20, borderLeft: '1px solid #eee' }}>
-          <h3>Assets</h3>
-          <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-            <button onClick={() => setActiveTab('items')} style={{ flex: 1 }}>Wishlist</button>
-            <button onClick={() => setActiveTab('inspo')} style={{ flex: 1 }}>Inspo</button>
+        <div style={{ position: 'absolute', right: 0, top: 70, bottom: 0, width: '300px', background: 'white', zIndex: 50, padding: 20, borderLeft: '1px solid #eee', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <h3>Assets</h3>
+            <button onClick={() => setShowAssetDrawer(false)} style={{ background: 'none', border: 'none', fontSize: 16, cursor: 'pointer' }}>✕</button>
           </div>
-          <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+            <button onClick={() => setActiveTab('items')} style={{ flex: 1, background: activeTab === 'items' ? '#f0f0f0' : 'none', border: '1px solid #ddd', borderRadius: 4, padding: 6, cursor: 'pointer' }}>Wishlist</button>
+            <button onClick={() => setActiveTab('inspo')} style={{ flex: 1, background: activeTab === 'inspo' ? '#f0f0f0' : 'none', border: '1px solid #ddd', borderRadius: 4, padding: 6, cursor: 'pointer' }}>Inspo</button>
+          </div>
+          <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, overflowY: 'auto' }}>
             {activeTab === 'items' ? shoppingItems.map(i => (
-              <div key={i.id} onClick={() => addElementToCanvas(i.image)} style={{ cursor: 'pointer' }}>
-                <img src={i.image} style={{ width: '100%', height: 100, objectFit: 'contain' }} />
+              <div key={i.id} onClick={() => !isUploading && addElementToCanvas(i.image)} style={{ cursor: isUploading ? 'wait' : 'pointer', border: '1px solid #eee', padding: 4, borderRadius: 4 }}>
+                <img src={i.image} style={{ width: '100%', height: 80, objectFit: 'contain' }} alt="" />
               </div>
             )) : inspoPhotos.map(p => (
-              <div key={p.id} onClick={() => addElementToCanvas(p.data)} style={{ cursor: 'pointer' }}>
-                <img src={p.data} style={{ width: '100%', height: 100, objectFit: 'cover' }} />
+              <div key={p.id} onClick={() => !isUploading && addElementToCanvas(p.data)} style={{ cursor: isUploading ? 'wait' : 'pointer', border: '1px solid #eee', padding: 4, borderRadius: 4 }}>
+                <img src={p.data} style={{ width: '100%', height: 80, objectFit: 'cover' }} alt="" />
               </div>
             ))}
           </div>
