@@ -290,16 +290,18 @@ export default function Moodboard() {
         {(swatchCategories || []).map(cat => (
           <div key={cat.id} style={{ marginBottom: '40px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h2 style={{ fontSize: '16px', fontFamily: 'Inter', fontWeight: '600', letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--text-main)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <h2 style={{ fontSize: '18px', fontFamily: 'Inter', fontWeight: '600', letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
                   {cat.name}
                 </h2>
-                <button onClick={(e) => openEditCat(cat, e)} style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer' }}>
-                  <Edit3 size={14} />
-                </button>
-                <button onClick={(e) => triggerDeleteCat(cat.id, e)} style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer' }}>
-                  <Trash2 size={14} />
-                </button>
+                <div style={{ display: 'flex', gap: 8, opacity: 0.6 }}>
+                  <button onClick={(e) => openEditCat(cat, e)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}>
+                    <Edit3 size={14} />
+                  </button>
+                  <button onClick={(e) => triggerDeleteCat(cat.id, e)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}>
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
               <button onClick={() => openAddSwatchToCat(cat.id)} style={{ border: 'none', background: 'none', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--accent)', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
                 <Plus size={14} /> Add Swatch
@@ -307,11 +309,11 @@ export default function Moodboard() {
             </div>
 
             {groupedSwatches[cat.id]?.length === 0 ? (
-              <div onClick={() => openAddSwatchToCat(cat.id)} style={{ height: 60, border: '1px dashed var(--border)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' }}>
+              <div onClick={() => openAddSwatchToCat(cat.id)} style={{ height: 80, border: '1px dashed var(--border)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer', background: '#fcfcfc' }}>
                 Click to add the first swatch to this group
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '20px' }}>
+              <div className="swatch-grid">
                 {(groupedSwatches[cat.id] || []).map(swatch => (
                   <SwatchCard key={swatch.id} swatch={swatch} onDelete={triggerDeleteSwatch} />
                 ))}
@@ -324,11 +326,11 @@ export default function Moodboard() {
         {unassigned.length > 0 && (
           <div style={{ marginBottom: '40px' }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px', marginBottom: '16px' }}>
-                <h2 style={{ fontSize: '16px', fontFamily: 'Inter', fontWeight: '600', letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                <h2 style={{ fontSize: '18px', fontFamily: 'Inter', fontWeight: '600', letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
                   Unassigned
                 </h2>
              </div>
-             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '20px' }}>
+             <div className="swatch-grid">
                 {unassigned.map(swatch => (
                   <SwatchCard key={swatch.id} swatch={swatch} onDelete={triggerDeleteSwatch} />
                 ))}
@@ -539,39 +541,31 @@ export default function Moodboard() {
 // SUB-COMPONENT FOR SWATCH VISUAL TO KEEP MAIN CLEAN
 function SwatchCard({ swatch, onDelete }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ 
-        position: 'relative', 
-        aspectRatio: '1', 
-        borderRadius: 'var(--radius-md)', 
-        overflow: 'hidden', 
-        boxShadow: 'var(--shadow-sm)', 
-        border: '1px solid #eee' 
-      }}>
-        {swatch.type === 'color' ? (
-          <div style={{ height: '100%', width: '100%', backgroundColor: swatch.data }} />
-        ) : (
-          <img src={swatch.data} alt="" style={{ height: '100%', width: '100%', objectFit: 'cover' }} />
-        )}
-        <button 
-          onClick={(e) => onDelete(swatch.id, e)}
-          style={{ 
-            position: 'absolute', top: '6px', right: '6px', background: 'rgba(255,255,255,0.9)',
-            border: 'none', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-            backdropFilter: 'blur(4px)'
-          }}>
-          <Trash2 size={10} color="#B04B4B" />
-        </button>
-      </div>
-      <div style={{ padding: '2px 4px' }}>
-        <div style={{ fontWeight: '600', fontSize: '13px', color: 'var(--text-main)' }}>{swatch.name}</div>
-        {swatch.type === 'color' && <div style={{ fontSize: '11px', color: '#aaa', fontFamily: 'monospace', marginTop: '2px' }}>{swatch.data}</div>}
+    <div className="swatch-item">
+      {swatch.type === 'color' ? (
+        <div style={{ flexGrow: 1, backgroundColor: swatch.data }} />
+      ) : (
+        <img src={swatch.data} alt="" style={{ flexGrow: 1, height: '100%', width: '100%', objectFit: 'cover' }} />
+      )}
+      
+      <div className="swatch-info" style={{ padding: swatch.description ? '8px 4px' : '10px' }}>
+        <div style={{ fontWeight: '600' }}>{swatch.name}</div>
         {swatch.description && (
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', fontStyle: 'italic', lineHeight: '1.3' }}>
+          <div style={{ fontSize: '10px', color: '#666', marginTop: '4px', fontStyle: 'italic', lineHeight: '1.2', padding: '0 4px' }}>
             {swatch.description}
           </div>
         )}
       </div>
+
+      <button 
+        onClick={(e) => onDelete(swatch.id, e)}
+        style={{ 
+          position: 'absolute', top: '8px', right: '8px', background: 'rgba(255,255,255,0.85)',
+          border: 'none', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          backdropFilter: 'blur(4px)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+        }}>
+        <Trash2 size={12} color="#B04B4B" />
+      </button>
     </div>
   );
 }
