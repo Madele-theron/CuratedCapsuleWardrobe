@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Rnd } from 'react-rnd';
 import { supabase } from '../lib/supabaseClient';
+import { useData } from '../context/DataContext';
 import { readFileAsDataURL } from '../hooks/useFileReader';
 import { Plus, Trash2, Image as ImageIcon, Layers, ShoppingBag, ChevronLeft, Calendar, Loader2 } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function Scrapbook() {
-  const [boards, setBoards] = useState([]);
+  const { boards, loadScrapbooks } = useData();
   const [activeBoardId, setActiveBoardId] = useState(null);
   const [activeBoardName, setActiveBoardName] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -16,7 +17,7 @@ export default function Scrapbook() {
   const [inspoPhotos, setInspoPhotos] = useState([]);
   const [showAssetDrawer, setShowAssetDrawer] = useState(false);
   const [activeTab, setActiveTab] = useState('items');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(boards === null);
   const [isUploading, setIsUploading] = useState(false);
   const [confirmState, setConfirmState] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' });
   const canvasRef = useRef(null);
@@ -32,10 +33,9 @@ export default function Scrapbook() {
     }
   }, [activeBoardId]);
 
-  const loadBoards = async () => {
+  const loadBoards = async (force = false) => {
     try {
-      const { data } = await supabase.from('scrapbooks').select('*').order('created_at', { ascending: false });
-      setBoards(data || []);
+      await loadScrapbooks(force);
     } finally {
       setIsLoading(false);
     }
@@ -60,7 +60,7 @@ export default function Scrapbook() {
     if (!newBoardName.trim()) return triggerWarning("Please enter a name for this board.");
     const { data, error } = await supabase.from('scrapbooks').insert([{ name: newBoardName }]).select();
     if (error) return triggerWarning(error.message);
-    loadBoards();
+    loadBoards(true);
     setActiveBoardId(data[0].id);
     setActiveBoardName(newBoardName);
     setShowModal(false);
@@ -76,7 +76,7 @@ export default function Scrapbook() {
       onConfirm: async () => {
         setConfirmState({ isOpen: false });
         await supabase.from('scrapbooks').delete().eq('id', id);
-        loadBoards();
+        loadBoards(true);
       }
     });
   };

@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { useData } from '../context/DataContext';
 import { readFileAsDataURL } from '../hooks/useFileReader';
 import { Plus, Trash2, Image as ImageIcon, Droplet, UploadCloud, Loader2 } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function Moodboard() {
-  const [swatches, setSwatches] = useState([]);
-  const [inspoPhotos, setInspoPhotos] = useState([]);
+  const { swatches, inspoPhotos, loadMoodboard } = useData();
   const [showAddModal, setShowAddModal] = useState(false);
   const [newSwatch, setNewSwatch] = useState({ name: '', type: 'color', data: '#ffffff' });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(swatches === null);
   const [isUploading, setIsUploading] = useState(false);
   const [confirmState, setConfirmState] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
@@ -17,12 +17,9 @@ export default function Moodboard() {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (force = false) => {
     try {
-      const { data: swt } = await supabase.from('swatches').select('*').order('created_at', { ascending: true });
-      const { data: inspo } = await supabase.from('inspo_photos').select('*').order('created_at', { ascending: false });
-      setSwatches(swt || []);
-      setInspoPhotos(inspo || []);
+      await loadMoodboard(force);
     } catch (e) {
       console.error(e);
     } finally {
@@ -47,7 +44,7 @@ export default function Moodboard() {
         const base64 = await readFileAsDataURL(file);
         await supabase.from('inspo_photos').insert([{ data: base64 }]);
       }
-      await fetchData();
+      await fetchData(true); // Force fresh reload after write
     } finally {
       setIsUploading(false);
     }
@@ -74,7 +71,7 @@ export default function Moodboard() {
       }]);
       setShowAddModal(false);
       setNewSwatch({ name: '', type: 'color', data: '#ffffff' });
-      await fetchData();
+      await fetchData(true);
     } finally {
       setIsUploading(false);
     }
@@ -89,7 +86,7 @@ export default function Moodboard() {
       onConfirm: async () => {
         await supabase.from('swatches').delete().eq('id', id);
         setConfirmState({ isOpen: false });
-        fetchData();
+        fetchData(true);
       }
     });
   };
@@ -103,7 +100,7 @@ export default function Moodboard() {
       onConfirm: async () => {
         await supabase.from('inspo_photos').delete().eq('id', id);
         setConfirmState({ isOpen: false });
-        fetchData();
+        fetchData(true);
       }
     });
   };

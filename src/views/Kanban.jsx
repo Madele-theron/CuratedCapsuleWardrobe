@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { useData } from '../context/DataContext';
 import { readFileAsDataURL } from '../hooks/useFileReader';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Plus, Trash2, ExternalLink, Pencil, Loader2 } from 'lucide-react';
@@ -13,11 +14,11 @@ const COLUMNS = [
 ];
 
 export default function Kanban() {
-  const [items, setItems] = useState([]);
+  const { items, setItems, loadItems } = useData();
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ name: '', price: '', urls: '', category: '', image: null });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(items === null);
   const [isSaving, setIsSaving] = useState(false);
   const [confirmState, setConfirmState] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' });
 
@@ -25,10 +26,9 @@ export default function Kanban() {
     fetchItems();
   }, []);
 
-  const fetchItems = async () => {
+  const fetchItems = async (force = false) => {
     try {
-      const { data } = await supabase.from('items').select('*').order('created_at', { ascending: true });
-      setItems(data || []);
+      await loadItems(force);
     } finally {
       setIsLoading(false);
     }
@@ -106,7 +106,7 @@ export default function Kanban() {
       setShowModal(false);
       setFormData({ name: '', price: '', urls: '', category: '', image: null });
       setEditingId(null);
-      await fetchItems();
+      await fetchItems(true);
     } finally {
       setIsSaving(false);
     }
@@ -121,7 +121,7 @@ export default function Kanban() {
       onConfirm: async () => {
         setConfirmState({ isOpen: false });
         await supabase.from('items').delete().eq('id', id);
-        fetchItems();
+        fetchItems(true);
       }
     });
   };

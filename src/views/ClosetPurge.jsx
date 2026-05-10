@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { useData } from '../context/DataContext';
 import { Plus, Trash2, CheckCircle2, Circle, PencilLine, X, Loader2 } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 
@@ -27,27 +28,25 @@ const DEFAULT_MISSION = [
 ];
 
 export default function ClosetPurge() {
-  const [todos, setTodos] = useState([]);
+  const { todos, setTodos, loadTodos } = useData();
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ title: '', description: '' });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(todos === null);
   const [confirmState, setConfirmState] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' });
 
   useEffect(() => {
     fetchAndSeedData();
   }, []);
 
-  const fetchAndSeedData = async () => {
+  const fetchAndSeedData = async (force = false) => {
     try {
-      let { data } = await supabase.from('todos').select('*').order('created_at', { ascending: true });
+      let data = await loadTodos(force);
       
       if (!data || data.length === 0) {
         await supabase.from('todos').insert(DEFAULT_MISSION);
-        const { data: refreshed } = await supabase.from('todos').select('*').order('created_at', { ascending: true });
-        data = refreshed;
+        data = await loadTodos(true); // Re-fetch forced
       }
-      setTodos(data || []);
     } finally {
       setIsLoading(false);
     }
@@ -82,7 +81,7 @@ export default function ClosetPurge() {
     setShowModal(false);
     setEditingId(null);
     setFormData({ title: '', description: '' });
-    fetchAndSeedData();
+    fetchAndSeedData(true);
   };
 
   const triggerDelete = (id, e) => {
@@ -95,7 +94,7 @@ export default function ClosetPurge() {
       onConfirm: async () => {
         setConfirmState({ isOpen: false });
         await supabase.from('todos').delete().eq('id', id);
-        fetchAndSeedData();
+        fetchAndSeedData(true);
       }
     });
   };

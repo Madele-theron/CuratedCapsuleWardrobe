@@ -6,6 +6,7 @@ import Kanban from './views/Kanban';
 import Scrapbook from './views/Scrapbook';
 import ClosetPurge from './views/ClosetPurge';
 import Auth from './components/Auth';
+import { DataProvider } from './context/DataContext';
 import './App.css';
 
 function App() {
@@ -56,12 +57,14 @@ function App() {
   };
 
   return (
-    <div className="app-layout">
-      <Sidebar activeView={activeView} setActiveView={setActiveView} />
-      <main className="main-content">
-        {renderContent()}
-      </main>
-    </div>
+    <DataProvider session={session}>
+      <div className="app-layout">
+        <Sidebar activeView={activeView} setActiveView={setActiveView} />
+        <main className="main-content">
+          {renderContent()}
+        </main>
+      </div>
+    </DataProvider>
   );
 }
 
