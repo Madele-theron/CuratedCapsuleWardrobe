@@ -356,7 +356,7 @@ export default function Moodboard() {
           </label>
         ) : (
           <div className="inspo-grid">
-            {inspoPhotos.map(photo => (
+            {(inspoPhotos || []).map(photo => (
               <div key={photo.id} className="inspo-item">
                 <img src={photo.data} className="inspo-image" loading="lazy" />
                 <div className="action-overlay">

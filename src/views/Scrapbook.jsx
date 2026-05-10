@@ -177,7 +177,7 @@ export default function Scrapbook() {
               <Plus size={28} />
               <span>Create New Board</span>
             </div>
-            {boards.map(board => (
+            {(boards || []).map(board => (
               <div key={board.id} onClick={() => openBoard(board)} style={{ height: '220px', background: 'white', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', position: 'relative', cursor: 'pointer' }}>
                 <div style={{ flexGrow: 1, height: '70%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fafafa' }}>
                   <ImageIcon size={40} style={{ opacity: 0.1 }} />

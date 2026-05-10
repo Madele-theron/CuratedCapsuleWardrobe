@@ -144,7 +144,7 @@ export default function Kanban() {
     });
   };
 
-  const getColumnItems = (colId) => items.filter(i => i.status === colId);
+  const getColumnItems = (colId) => (items || []).filter(i => i.status === colId);
 
   if (isLoading) {
     return (

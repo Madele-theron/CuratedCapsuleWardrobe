@@ -112,8 +112,9 @@ export default function ClosetPurge() {
     setShowModal(true);
   };
 
-  const completedCount = todos.filter(t => t.is_done).length;
-  const progressPercent = todos.length > 0 ? Math.round((completedCount / todos.length) * 100) : 0;
+  const safeTodos = todos || [];
+  const completedCount = safeTodos.filter(t => t.is_done).length;
+  const progressPercent = safeTodos.length > 0 ? Math.round((completedCount / safeTodos.length) * 100) : 0;
 
   if (isLoading) {
     return (
@@ -149,7 +150,7 @@ export default function ClosetPurge() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '800px' }}>
-          {todos.map((todo) => {
+          {safeTodos.map((todo) => {
             const isDone = todo.is_done;
             return (
               <div 
