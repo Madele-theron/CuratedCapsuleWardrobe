@@ -1,0 +1,116 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+:root {
+  --bg-app: #FCFAF8;
+  --bg-panel: #FFFFFF;
+  --text-main: #2A2826;
+  --text-muted: #706C67;
+  --accent: #D0B393;
+  --accent-light: #F2EDE6;
+  --accent-dark: #9C7E5E;
+  --border: #EEEBE6;
+  --border-subtle: #F6F4F2;
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.04);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 24px;
+  --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+  /* Status colors */
+  --status-urgent: #FFF0F0;
+  --text-urgent: #A83B3B;
+  --status-planning: #FDF7E8;
+  --text-planning: #8B6D2A;
+  --status-waiting: #F0F4F8;
+  --text-waiting: #456B8F;
+  --status-bought: #EDF7F1;
+  --text-bought: #387C52;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  line-height: 1.5;
+  overflow: hidden; /* App shell layout handles overflow */
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: 'Playfair Display', serif;
+  font-weight: 600;
+}
+
+button, input, select, textarea {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+}
+
+button {
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom input styles */
+input[type="text"], input[type="number"], select, textarea {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  color: var(--text-main);
+  transition: var(--transition);
+  outline: none;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(208, 179, 147, 0.15);
+}
+
+.btn-primary {
+  background: var(--text-main);
+  color: #FFF;
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.btn-primary:hover {
+  background: var(--accent-dark);
+  transform: translateY(-1px);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+}
+.btn-outline:hover {
+  border-color: var(--accent);
+  background: var(--bg-app);
+}
+
+/* Utility for freeform canvas background dots */
+.canvas-bg {
+  background-color: #fafafa;
+  background-image: radial-gradient(#e0e0e0 1px, transparent 1px);
+  background-size: 20px 20px;
+}
