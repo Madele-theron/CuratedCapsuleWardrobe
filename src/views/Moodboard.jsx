@@ -62,6 +62,23 @@ export default function Moodboard() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    const handlePaste = async (e) => {
+      if (!showAddModal) return;
+      const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+      for (let index in items) {
+        const item = items[index];
+        if (item.kind === 'file' && item.type.indexOf('image') !== -1) {
+          const blob = item.getAsFile();
+          const b64 = await readFileAsDataURL(blob);
+          setNewSwatch(prev => ({ ...prev, data: b64, type: 'texture' }));
+        }
+      }
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [showAddModal]);
+
   const fetchData = async (force = false) => {
     try {
       const { swatchCategories: existingCats } = await loadMoodboard(force);
@@ -421,11 +438,25 @@ export default function Moodboard() {
 
             <div className="form-group">
               <label>Visual Content</label>
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
+                <input 
+                  type="text" 
+                  disabled={isUploading} 
+                  placeholder="Paste raw Image URL here (instead of file)..." 
+                  style={{ flex: 1, fontSize: '13px' }} 
+                  onChange={e => {
+                    const val = e.target.value;
+                    if(val.trim()) {
+                       setNewSwatch({...newSwatch, data: val, type: val.includes('#') ? 'color' : 'texture'});
+                    }
+                  }} 
+                />
+              </div>
               {newSwatch.type === 'color' ? (
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                   <input 
                     disabled={isUploading}
-                    type="color" value={newSwatch.data}
+                    type="color" value={newSwatch.data.startsWith('#') ? newSwatch.data : '#d0b393'}
                     onChange={e => setNewSwatch({ ...newSwatch, data: e.target.value })}
                     style={{ width: '60px', height: '40px', cursor: 'pointer' }}
                   />
@@ -439,11 +470,17 @@ export default function Moodboard() {
               ) : (
                 <div>
                   <input type="file" accept="image/*" onChange={handleSwatchFileUpload} style={{ display: 'none' }} id="fileInputSwatch" disabled={isUploading} />
-                  <label htmlFor="fileInputSwatch" style={{ display: 'block', border: '2px dashed var(--border)', padding: '30px', textAlign: 'center', cursor: isUploading ? 'not-allowed' : 'pointer' }}>
-                    {newSwatch.data ? (
+                  <label htmlFor="fileInputSwatch" style={{ 
+                    display: 'block', border: '2px dashed var(--border)', padding: '30px', textAlign: 'center', 
+                    cursor: isUploading ? 'not-allowed' : 'pointer', background: '#F9FAFB'
+                  }}>
+                    {newSwatch.data && newSwatch.data.length > 30 ? (
                       <img src={newSwatch.data} style={{ maxWidth: '100%', maxHeight: '120px', borderRadius: '4px' }} />
                     ) : (
-                      <>Upload Texture Photo</>
+                      <>
+                        <div style={{ fontWeight: 600 }}>Upload Texture Photo</div>
+                        <div style={{ fontSize: 11, color: '#888', marginTop: 6 }}>OR just Cmd+V paste a screenshot!</div>
+                      </>
                     )}
                   </label>
                 </div>

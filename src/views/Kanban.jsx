@@ -26,6 +26,24 @@ export default function Kanban() {
     fetchItems();
   }, []);
 
+  useEffect(() => {
+    const handlePaste = async (e) => {
+      if (!showModal) return;
+      const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+      for (let index in items) {
+        const item = items[index];
+        if (item.kind === 'file' && item.type.indexOf('image') !== -1) {
+          const blob = item.getAsFile();
+          const b64 = await readFileAsDataURL(blob);
+          setFormData(prev => ({ ...prev, image: b64 }));
+        }
+      }
+    };
+    
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [showModal]);
+
   const fetchItems = async (force = false) => {
     try {
       await loadItems(force);
@@ -211,14 +229,28 @@ export default function Kanban() {
             
             <div className="form-group" style={{ marginTop: '20px' }}>
               <label>Product Photo</label>
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
+                <input 
+                  type="text" 
+                  disabled={isSaving} 
+                  placeholder="Paste Image URL directly here..." 
+                  style={{ flex: 1, fontSize: '13px' }} 
+                  onChange={e => setFormData({...formData, image: e.target.value})} 
+                />
+              </div>
               <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} id="prodImage" disabled={isSaving} />
-              <label htmlFor="prodImage" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '2px dashed var(--border)', padding: '20px', height: '140px', cursor: isSaving ? 'not-allowed' : 'pointer' }}>
+              <label htmlFor="prodImage" style={{ 
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
+                border: '2px dashed var(--border)', padding: '20px', height: '140px', cursor: isSaving ? 'not-allowed' : 'pointer',
+                background: '#F9FAFB', transition: 'border-color 0.2s ease'
+              }}>
                 {formData.image ? (
                   <img src={formData.image} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} alt="" />
                 ) : (
                   <>
-                    <Plus size={24} style={{ color: 'var(--text-muted)' }} />
-                    <span>Upload Photo</span>
+                    <Plus size={24} style={{ color: 'var(--text-muted)', marginBottom: '8px' }} />
+                    <span style={{ fontWeight: '500' }}>Click to Upload Photo</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>OR just press Cmd+V to paste a screenshot directly!</span>
                   </>
                 )}
               </label>
