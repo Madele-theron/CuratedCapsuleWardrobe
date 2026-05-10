@@ -3,6 +3,7 @@ import { Rnd } from 'react-rnd';
 import { supabase } from '../lib/supabaseClient';
 import { readFileAsDataURL } from '../hooks/useFileReader';
 import { Plus, Trash2, Image as ImageIcon, Layers, ShoppingBag, ChevronLeft, Calendar, Loader2 } from 'lucide-react';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function Scrapbook() {
   const [boards, setBoards] = useState([]);
@@ -17,6 +18,7 @@ export default function Scrapbook() {
   const [activeTab, setActiveTab] = useState('items');
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [confirmState, setConfirmState] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' });
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -44,22 +46,39 @@ export default function Scrapbook() {
     setShowModal(true);
   };
 
+  const triggerWarning = (msg) => {
+    setConfirmState({
+      isOpen: true,
+      title: "Note",
+      message: msg,
+      type: 'warning',
+      onConfirm: () => setConfirmState({ isOpen: false })
+    });
+  };
+
   const handleCreateBoard = async () => {
-    if (!newBoardName.trim()) return alert("Name required");
+    if (!newBoardName.trim()) return triggerWarning("Please enter a name for this board.");
     const { data, error } = await supabase.from('scrapbooks').insert([{ name: newBoardName }]).select();
-    if (error) return alert(error.message);
+    if (error) return triggerWarning(error.message);
     loadBoards();
     setActiveBoardId(data[0].id);
     setActiveBoardName(newBoardName);
     setShowModal(false);
   };
 
-  const deleteBoard = async (id, e) => {
+  const triggerDeleteBoard = (id, e) => {
     e.stopPropagation();
-    if (window.confirm("Delete this board and its assets forever?")) {
-      await supabase.from('scrapbooks').delete().eq('id', id);
-      loadBoards();
-    }
+    setConfirmState({
+      isOpen: true,
+      title: "Delete outfit board?",
+      message: "This will permanently remove the board and all placed assets.",
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmState({ isOpen: false });
+        await supabase.from('scrapbooks').delete().eq('id', id);
+        loadBoards();
+      }
+    });
   };
 
   const openBoard = (board) => {
@@ -165,7 +184,7 @@ export default function Scrapbook() {
                 </div>
                 <div style={{ padding: '12px', borderTop: '1px solid #eee' }}>
                   <h3 style={{ fontSize: '15px' }}>{board.name}</h3>
-                  <button onClick={(e) => deleteBoard(board.id, e)} style={{ position: 'absolute', top: '8px', right: '8px', border: 'none', background: 'white', borderRadius: '50%', width: '24px', height: '24px' }}>
+                  <button onClick={(e) => triggerDeleteBoard(board.id, e)} style={{ position: 'absolute', top: '8px', right: '8px', border: 'none', background: 'white', borderRadius: '50%', width: '24px', height: '24px' }}>
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -185,6 +204,14 @@ export default function Scrapbook() {
             </div>
           </div>
         )}
+        <ConfirmDialog 
+          isOpen={confirmState.isOpen}
+          title={confirmState.title}
+          message={confirmState.message}
+          type={confirmState.type}
+          onConfirm={confirmState.onConfirm}
+          onCancel={() => setConfirmState({ isOpen: false })}
+        />
       </div>
     );
   }

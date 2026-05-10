@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { readFileAsDataURL } from '../hooks/useFileReader';
 import { Plus, Trash2, Image as ImageIcon, Droplet, UploadCloud, Loader2 } from 'lucide-react';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function Moodboard() {
   const [swatches, setSwatches] = useState([]);
@@ -10,6 +11,7 @@ export default function Moodboard() {
   const [newSwatch, setNewSwatch] = useState({ name: '', type: 'color', data: '#ffffff' });
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [confirmState, setConfirmState] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
   useEffect(() => {
     fetchData();
@@ -51,8 +53,18 @@ export default function Moodboard() {
     }
   };
 
+  const triggerWarning = (msg) => {
+    setConfirmState({
+      isOpen: true,
+      title: "Missing Info",
+      message: msg,
+      type: 'warning',
+      onConfirm: () => setConfirmState({ isOpen: false })
+    });
+  };
+
   const saveSwatch = async () => {
-    if (!newSwatch.name) return alert('Please give your swatch a name.');
+    if (!newSwatch.name) return triggerWarning('Please provide a name for this swatch.');
     setIsUploading(true);
     try {
       await supabase.from('swatches').insert([{
@@ -68,20 +80,32 @@ export default function Moodboard() {
     }
   };
 
-  const deleteSwatch = async (id, e) => {
+  const triggerDeleteSwatch = (id, e) => {
     e.stopPropagation();
-    if(window.confirm("Delete this swatch?")) {
-      await supabase.from('swatches').delete().eq('id', id);
-      fetchData();
-    }
+    setConfirmState({
+      isOpen: true,
+      title: "Delete swatch?",
+      message: "This will permanently remove this color/texture from your palette.",
+      onConfirm: async () => {
+        await supabase.from('swatches').delete().eq('id', id);
+        setConfirmState({ isOpen: false });
+        fetchData();
+      }
+    });
   };
 
-  const deleteInspoPhoto = async (id, e) => {
+  const triggerDeleteInspo = (id, e) => {
     e.stopPropagation();
-    if(window.confirm("Remove this inspiration photo?")) {
-      await supabase.from('inspo_photos').delete().eq('id', id);
-      fetchData();
-    }
+    setConfirmState({
+      isOpen: true,
+      title: "Remove inspiration?",
+      message: "This image will be permanently deleted from your moodboard storage.",
+      onConfirm: async () => {
+        await supabase.from('inspo_photos').delete().eq('id', id);
+        setConfirmState({ isOpen: false });
+        fetchData();
+      }
+    });
   };
 
   if (isLoading) {
@@ -135,7 +159,7 @@ export default function Moodboard() {
                 {swatch.name}
               </div>
               <button 
-                onClick={(e) => deleteSwatch(swatch.id, e)}
+                onClick={(e) => triggerDeleteSwatch(swatch.id, e)}
                 style={{ 
                   position: 'absolute', top: '8px', right: '8px', background: 'rgba(255,255,255,0.85)',
                   border: 'none', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
@@ -182,7 +206,7 @@ export default function Moodboard() {
                 <img src={photo.data} className="inspo-image" loading="lazy" />
                 <div className="action-overlay">
                   <button 
-                    onClick={(e) => deleteInspoPhoto(photo.id, e)}
+                    onClick={(e) => triggerDeleteInspo(photo.id, e)}
                     style={{ 
                       background: 'rgba(255, 255, 255, 0.9)', border: 'none', borderRadius: '50%', 
                       width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', 
@@ -276,6 +300,14 @@ export default function Moodboard() {
           </div>
         </div>
       )}
+      <ConfirmDialog 
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        type={confirmState.type}
+        onConfirm={confirmState.onConfirm}
+        onCancel={() => setConfirmState({ isOpen: false })}
+      />
     </div>
   );
 }

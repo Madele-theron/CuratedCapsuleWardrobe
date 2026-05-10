@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { Plus, Trash2, CheckCircle2, Circle, PencilLine, X, Loader2 } from 'lucide-react';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const DEFAULT_MISSION = [
   {
@@ -31,6 +32,7 @@ export default function ClosetPurge() {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ title: '', description: '' });
   const [isLoading, setIsLoading] = useState(true);
+  const [confirmState, setConfirmState] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' });
 
   useEffect(() => {
     fetchAndSeedData();
@@ -57,8 +59,18 @@ export default function ClosetPurge() {
     await supabase.from('todos').update({ is_done: newStatus }).eq('id', id);
   };
 
+  const triggerWarning = (msg) => {
+    setConfirmState({
+      isOpen: true,
+      title: "Missing Info",
+      message: msg,
+      type: 'warning',
+      onConfirm: () => setConfirmState({ isOpen: false })
+    });
+  };
+
   const saveTodo = async () => {
-    if (!formData.title) return alert("Title is required");
+    if (!formData.title) return triggerWarning("Please provide a task name.");
     const payload = { title: formData.title, description: formData.description };
 
     if (editingId) {
@@ -73,12 +85,19 @@ export default function ClosetPurge() {
     fetchAndSeedData();
   };
 
-  const deleteTodo = async (id, e) => {
+  const triggerDelete = (id, e) => {
     e.stopPropagation();
-    if (window.confirm("Delete this mission step permanently?")) {
-      await supabase.from('todos').delete().eq('id', id);
-      fetchAndSeedData();
-    }
+    setConfirmState({
+      isOpen: true,
+      title: "Delete step?",
+      message: "This will permanently remove this guideline from your purge checklist.",
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmState({ isOpen: false });
+        await supabase.from('todos').delete().eq('id', id);
+        fetchAndSeedData();
+      }
+    });
   };
 
   const openEdit = (todo, e) => {
@@ -174,7 +193,7 @@ export default function ClosetPurge() {
                   <button onClick={(e) => openEdit(todo, e)} style={{ border: 'none', background: 'transparent', color: '#A1A1AA', padding: '4px', cursor: 'pointer' }}>
                     <PencilLine size={16} />
                   </button>
-                  <button onClick={(e) => deleteTodo(todo.id, e)} style={{ border: 'none', background: 'transparent', color: '#A1A1AA', padding: '4px', cursor: 'pointer' }}>
+                  <button onClick={(e) => triggerDelete(todo.id, e)} style={{ border: 'none', background: 'transparent', color: '#A1A1AA', padding: '4px', cursor: 'pointer' }}>
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -183,6 +202,15 @@ export default function ClosetPurge() {
           })}
         </div>
       </div>
+
+      <ConfirmDialog 
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        type={confirmState.type}
+        onConfirm={confirmState.onConfirm}
+        onCancel={() => setConfirmState({ isOpen: false })}
+      />
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>

@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { readFileAsDataURL } from '../hooks/useFileReader';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Plus, Trash2, ExternalLink, Pencil, Loader2 } from 'lucide-react';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const COLUMNS = [
   { id: 'urgent', title: '🚨 High Priority', color: 'var(--status-urgent)' },
@@ -18,6 +19,7 @@ export default function Kanban() {
   const [formData, setFormData] = useState({ name: '', price: '', urls: '', category: '', image: null });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [confirmState, setConfirmState] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' });
 
   useEffect(() => {
     fetchItems();
@@ -70,8 +72,18 @@ export default function Kanban() {
     setShowModal(true);
   };
 
+  const triggerWarning = (msg) => {
+    setConfirmState({
+      isOpen: true,
+      title: "Oops!",
+      message: msg,
+      type: 'warning',
+      onConfirm: () => setConfirmState({ isOpen: false })
+    });
+  };
+
   const saveItem = async () => {
-    if (!formData.name) return alert("Please name your item");
+    if (!formData.name) return triggerWarning("Please give your item a name before saving.");
     setIsSaving(true);
     try {
       const itemPayload = {
@@ -100,11 +112,18 @@ export default function Kanban() {
     }
   };
 
-  const deleteItem = async (id) => {
-    if(window.confirm("Remove item from wishlist?")) {
-      await supabase.from('items').delete().eq('id', id);
-      fetchItems();
-    }
+  const triggerDelete = (id) => {
+    setConfirmState({
+      isOpen: true,
+      title: "Remove from list?",
+      message: "This item and any uploaded product photos will be permanently deleted.",
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmState({ isOpen: false });
+        await supabase.from('items').delete().eq('id', id);
+        fetchItems();
+      }
+    });
   };
 
   const getColumnItems = (colId) => items.filter(i => i.status === colId);
@@ -166,7 +185,7 @@ export default function Kanban() {
                                   <button onClick={(e) => { e.stopPropagation(); handleEditClick(item); }} style={{ border: 'none', background: 'none', color: '#aaa', cursor: 'pointer' }}>
                                     <Pencil size={14} />
                                   </button>
-                                  <button onClick={(e) => { e.stopPropagation(); deleteItem(item.id); }} style={{ border: 'none', background: 'none', color: '#aaa', cursor: 'pointer' }}>
+                                  <button onClick={(e) => { e.stopPropagation(); triggerDelete(item.id); }} style={{ border: 'none', background: 'none', color: '#aaa', cursor: 'pointer' }}>
                                     <Trash2 size={14} />
                                   </button>
                                 </div>
@@ -236,6 +255,14 @@ export default function Kanban() {
           </div>
         </div>
       )}
+      <ConfirmDialog 
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        type={confirmState.type}
+        onConfirm={confirmState.onConfirm}
+        onCancel={() => setConfirmState({ isOpen: false })}
+      />
     </div>
   );
 }
