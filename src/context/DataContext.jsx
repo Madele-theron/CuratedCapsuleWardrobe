@@ -4,7 +4,8 @@ import { supabase } from '../lib/supabaseClient';
 const DataContext = createContext(null);
 
 export const DataProvider = ({ children, session }) => {
-  const [swatches, setSwatches] = useState(null); // null means not loaded yet
+  const [swatchCategories, setSwatchCategories] = useState(null);
+  const [swatches, setSwatches] = useState(null); 
   const [inspoPhotos, setInspoPhotos] = useState(null);
   const [items, setItems] = useState(null);
   const [boards, setBoards] = useState(null);
@@ -13,6 +14,7 @@ export const DataProvider = ({ children, session }) => {
   // Reset cache if user logs out
   useEffect(() => {
     if (!session) {
+      setSwatchCategories(null);
       setSwatches(null);
       setInspoPhotos(null);
       setItems(null);
@@ -22,12 +24,16 @@ export const DataProvider = ({ children, session }) => {
   }, [session]);
 
   const loadMoodboard = async (force = false) => {
-    if (!force && swatches !== null && inspoPhotos !== null) return { swatches, inspoPhotos };
+    if (!force && swatches !== null && inspoPhotos !== null && swatchCategories !== null) {
+      return { swatches, inspoPhotos, swatchCategories };
+    }
+    const { data: cats } = await supabase.from('swatch_categories').select('*').order('display_order', { ascending: true });
     const { data: swt } = await supabase.from('swatches').select('*').order('created_at', { ascending: true });
     const { data: inspo } = await supabase.from('inspo_photos').select('*').order('created_at', { ascending: false });
+    setSwatchCategories(cats || []);
     setSwatches(swt || []);
     setInspoPhotos(inspo || []);
-    return { swatches: swt || [], inspoPhotos: inspo || [] };
+    return { swatchCategories: cats || [], swatches: swt || [], inspoPhotos: inspo || [] };
   };
 
   const loadItems = async (force = false) => {
@@ -52,6 +58,7 @@ export const DataProvider = ({ children, session }) => {
   };
 
   const value = {
+    swatchCategories, setSwatchCategories,
     swatches, setSwatches,
     inspoPhotos, setInspoPhotos,
     items, setItems,
