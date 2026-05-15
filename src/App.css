@@ -354,3 +354,283 @@
   color: var(--text-muted);
   font-family: 'Playfair Display', serif;
 }
+
+/* =============================================
+   📱 MOBILE RESPONSIVE OVERRIDES
+   ============================================= */
+.mobile-header {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* 1. Main Layout Switch to Stacking Columns */
+  .app-layout {
+    flex-direction: column;
+    height: 100vh;
+    height: -webkit-fill-available; /* iOS viewport fix */
+    width: 100vw;
+    overflow: hidden;
+  }
+
+  /* 2. Elegant Mobile Header Stickiness */
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: rgba(252, 250, 248, 0.96);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 0 16px;
+    z-index: 99;
+  }
+
+  .mobile-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--accent-dark);
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .mobile-logout-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    padding: 8px;
+    cursor: pointer;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 3. Robust Viewport Anchoring to force scrolling */
+  .main-content {
+    position: absolute !important;
+    top: 60px;
+    bottom: calc(64px + env(safe-area-inset-bottom)); /* Account for notch gap */
+    left: 0;
+    right: 0;
+    width: 100vw;
+    height: auto !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .content-scroll-area {
+    padding: 20px 16px 40px 16px;
+    -webkit-overflow-scrolling: touch; /* Silky smooth iOS inertia */
+  }
+
+  .header-bar {
+    padding: 0 16px;
+    height: auto;
+    min-height: 60px;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: transparent;
+    border-bottom: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    margin-bottom: 8px;
+    margin-top: 4px;
+  }
+
+  .header-bar h1 {
+    font-size: 20px !important;
+  }
+
+  /* 4. The Sidebar -> Bottom Navigation Bar Transformation */
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100vw;
+    height: 64px;
+    flex-direction: row;
+    padding: 0;
+    border-right: none;
+    border-top: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 -4px 20px rgba(42, 40, 38, 0.04);
+    z-index: 99;
+    padding-bottom: env(safe-area-inset-bottom); /* iPhone notch spacing */
+  }
+
+  .app-logo, .sidebar-logout {
+    display: none !important;
+  }
+
+  .nav-container {
+    flex-direction: row !important;
+    justify-content: space-around !important;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  .nav-item {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 0;
+    margin-bottom: 0;
+    flex: 1;
+    height: 100%;
+    border-radius: 0;
+    background: transparent;
+    font-size: 9px;
+    letter-spacing: 0.2px;
+    font-weight: 600;
+    color: #94A3B8;
+  }
+
+  .nav-item:hover {
+    background: transparent;
+    color: #94A3B8;
+  }
+
+  .nav-item.active {
+    background: transparent;
+    color: var(--accent-dark);
+  }
+
+  .nav-item.active .nav-icon {
+    color: var(--accent-dark);
+    transform: translateY(-1px);
+  }
+  
+  .nav-icon {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.2s ease;
+  }
+
+  /* 5. Native iOS-style Bottom Sheet Modals */
+  .modal-overlay {
+    align-items: flex-end; /* Anchor modals to the bottom */
+  }
+
+  .modal-sheet {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 24px 24px 0 0; /* Only rounded at top */
+    padding: 24px 20px calc(32px + env(safe-area-inset-bottom)) 20px;
+    margin-top: auto;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.08);
+    max-height: 92vh;
+    overflow-y: auto;
+    animation: slideUpNative 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Elegant Grabber Handle to simulate native sheet */
+  .modal-sheet::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 5px;
+    background: #E2E8F0;
+    border-radius: 3px;
+    margin: -12px auto 24px auto;
+  }
+
+  /* Ensure touch inputs are large enough to prevent iOS Auto-Zoom */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  textarea,
+  select {
+    font-size: 16px !important; /* iOS requires 16px+ to stop auto-zoom */
+  }
+
+  /* 6. Dense View Grid Scaling */
+  .swatch-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+  }
+
+  .inspo-grid {
+    column-count: 2;
+    column-gap: 12px;
+  }
+
+  .kanban-container {
+    gap: 16px;
+    padding-bottom: 10px;
+  }
+
+  .kanban-column {
+    min-width: 85vw; /* Almost full screen horizontally for swiping */
+    max-width: 85vw;
+  }
+  
+  /* Scrapbook mobile optimization */
+  .canvas-bg {
+    min-width: 800px !important;
+    min-height: 650px !important;
+    background: radial-gradient(#E5E7EB 1px, transparent 1px); /* grid dot guide overlay */
+    background-size: 16px 16px;
+  }
+  
+  .scrapbook-toolbar {
+    bottom: 16px;
+    width: 90%;
+    justify-content: space-around;
+    padding: 6px 12px;
+  }
+
+  .scrapbook-asset-drawer {
+    top: auto !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 50vh !important;
+    border-radius: 20px 20px 0 0;
+    border-left: none !important;
+    border-top: 1px solid var(--border-subtle) !important;
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.08);
+    z-index: 101 !important;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom)) !important;
+    animation: slideUpNative 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Touch target optimization */
+  .card button,
+  .inspo-item button,
+  .swatch-item button {
+    padding: 6px !important; /* Enlarges hit box without changing visual size */
+  }
+  
+  .card svg,
+  .inspo-item svg,
+  .swatch-item svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+}
+
+@keyframes slideUpNative {
+  from {
+    transform: translateY(100%);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+

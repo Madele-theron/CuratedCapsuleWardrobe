@@ -239,7 +239,8 @@ export default function Scrapbook() {
           </label>
         </div>
       </header>
-      <div ref={canvasRef} className="canvas-bg" style={{ flexGrow: 1, position: 'relative', overflow: 'hidden', margin: '16px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' }}>
+      <div className="canvas-viewport" style={{ flexGrow: 1, overflow: 'auto', position: 'relative', margin: '16px' }}>
+        <div ref={canvasRef} className="canvas-bg" style={{ width: '100%', height: '100%', position: 'relative', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' }}>
         {elements.map((el) => (
           <Rnd
             key={el.id}
@@ -263,8 +264,9 @@ export default function Scrapbook() {
           </Rnd>
         ))}
       </div>
+    </div>
       {showAssetDrawer && (
-        <div style={{ position: 'absolute', right: 0, top: 70, bottom: 0, width: '300px', background: 'white', zIndex: 50, padding: 20, borderLeft: '1px solid #eee', display: 'flex', flexDirection: 'column' }}>
+        <div className="scrapbook-asset-drawer" style={{ position: 'absolute', right: 0, top: 70, bottom: 0, width: '300px', background: 'white', zIndex: 50, padding: 20, borderLeft: '1px solid #eee', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <h3>Assets</h3>
             <button onClick={() => setShowAssetDrawer(false)} style={{ background: 'none', border: 'none', fontSize: 16, cursor: 'pointer' }}>✕</button>
